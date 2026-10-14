@@ -1,4 +1,10 @@
+/* =========================================
+   YAGELA COLLECTION HUB
+   SCRIPT.JS
+========================================= */
 
+
+/* PRELOADER */
 
 window.addEventListener("load", function () {
 
@@ -14,6 +20,10 @@ window.addEventListener("load", function () {
 
 });
 
+
+/* =========================================
+   MOBILE MENU
+========================================= */
 
 const menuBtn = document.getElementById("menuBtn");
 
@@ -42,54 +52,41 @@ document.querySelectorAll(".nav-links a").forEach(link => {
 });
 
 
+/* =========================================
+   DARK / LIGHT MODE
+========================================= */
+
 const themeToggle = document.getElementById("themeToggle");
 
 
 themeToggle.addEventListener("click", function () {
 
-    document.body.classList.toggle("dark-mode");
+    const darkMode = document.body.classList.toggle("dark-mode");
+    updateThemeControl(darkMode);
+    localStorage.setItem("theme", darkMode ? "dark" : "light");
 
-
-    const icon = themeToggle.querySelector("i");
-
-
-    if (document.body.classList.contains("dark-mode")) {
-
-        icon.classList.remove("fa-moon");
-
-        icon.classList.add("fa-sun");
-
-        localStorage.setItem("theme", "dark");
-
-    } else {
-
-        icon.classList.remove("fa-sun");
-
-        icon.classList.add("fa-moon");
-
-        localStorage.setItem("theme", "light");
-
-    }
-
-    themeToggle.setAttribute("aria-pressed", String(document.body.classList.contains("dark-mode")));
 });
 
-themeToggle.setAttribute("aria-pressed", String(document.body.classList.contains("dark-mode")));
 
+/* LOAD SAVED THEME */
 
-if (localStorage.getItem("theme") === "dark") {
-
-    document.body.classList.add("dark-mode");
-
+function updateThemeControl(darkMode) {
     const icon = themeToggle.querySelector("i");
-
-    icon.classList.remove("fa-moon");
-
-    icon.classList.add("fa-sun");
-    themeToggle.setAttribute("aria-pressed", "true");
-
+    icon.classList.toggle("fa-sun", darkMode);
+    icon.classList.toggle("fa-moon", !darkMode);
+    themeToggle.setAttribute("aria-pressed", String(darkMode));
+    themeToggle.setAttribute("aria-label", darkMode ? "Switch to light theme" : "Switch to dark theme");
 }
 
+const savedTheme = localStorage.getItem("theme");
+const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+const initialDarkMode = savedTheme ? savedTheme === "dark" : prefersDark;
+document.body.classList.toggle("dark-mode", initialDarkMode);
+updateThemeControl(initialDarkMode);
+
+/* =========================================
+   SEARCH PRODUCTS
+========================================= */
 
 const searchToggle = document.querySelector(".search-toggle");
 
@@ -99,24 +96,14 @@ const closeSearch = document.getElementById("closeSearch");
 
 const searchInput = document.getElementById("searchInput");
 
-let activeFilter = "all";
-let activeSearch = "";
-
-function applyProductFilters() {
-    document.querySelectorAll(".product-card").forEach(product => {
-        const categoryMatches = activeFilter === "all" || product.dataset.category === activeFilter;
-        const productText = `${product.querySelector("h3")?.textContent || ""} ${product.querySelector(".product-category")?.textContent || ""} ${product.querySelector(".small-text")?.textContent || ""}`;
-        product.style.display = categoryMatches && productText.toLowerCase().includes(activeSearch) ? "" : "none";
-    });
-}
 
 searchToggle.addEventListener("click", function () {
 
     searchOverlay.classList.add("active");
-        searchOverlay.setAttribute("aria-hidden", "false");
-        searchToggle.setAttribute("aria-expanded", "true");
+    searchOverlay.setAttribute("aria-hidden", "false");
+    searchToggle.setAttribute("aria-expanded", "true");
 
-        searchInput.focus();
+    searchInput.focus();
 
 });
 
@@ -124,31 +111,50 @@ searchToggle.addEventListener("click", function () {
 closeSearch.addEventListener("click", function () {
 
     searchOverlay.classList.remove("active");
-        searchOverlay.setAttribute("aria-hidden", "true");
-        searchToggle.setAttribute("aria-expanded", "false");
+    searchOverlay.setAttribute("aria-hidden", "true");
+    searchToggle.setAttribute("aria-expanded", "false");
 
 });
 
+searchOverlay.addEventListener("click", function (event) {
+    if (event.target === searchOverlay) {
+        searchOverlay.classList.remove("active");
+        searchOverlay.setAttribute("aria-hidden", "true");
+        searchToggle.setAttribute("aria-expanded", "false");
+    }
+});
+
+let activeFilter = "all";
+let activeSearch = "";
+
+function applyProductFilters() {
+    document.querySelectorAll(".product-card").forEach(product => {
+        const categoryMatches = activeFilter === "all" || product.dataset.category === activeFilter;
+        const productText = `${product.querySelector("h3")?.textContent || ""} ${product.querySelector(".product-category")?.textContent || ""}`.toLowerCase();
+        const searchMatches = productText.includes(activeSearch);
+        product.style.display = categoryMatches && searchMatches ? "" : "none";
+    });
+}
 
 searchInput.addEventListener("input", function () {
-
     activeSearch = this.value.trim().toLowerCase();
     applyProductFilters();
-
 });
 
 searchInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter" && activeSearch) {
+        event.preventDefault();
         searchOverlay.classList.remove("active");
         searchOverlay.setAttribute("aria-hidden", "true");
         searchToggle.setAttribute("aria-expanded", "false");
-        document.getElementById("shop")
-            .scrollIntoView({
-                behavior: "smooth"
-            });
+        document.getElementById("shop").scrollIntoView({ behavior: "smooth" });
     }
 });
 
+
+/* =========================================
+   PRODUCT FILTERING
+========================================= */
 
 const filterButtons = document.querySelectorAll(".filter-btn");
 
@@ -157,43 +163,32 @@ filterButtons.forEach(button => {
 });
 
 filterButtons.forEach(button => {
+
     button.addEventListener("click", function () {
-        activeFilter = this.dataset.filter;
+
+
         filterButtons.forEach(btn => {
+
             const isActive = btn === this;
             btn.classList.toggle("active", isActive);
             btn.setAttribute("aria-pressed", String(isActive));
+
         });
+
+        const filter = this.dataset.filter;
+
+
+        activeFilter = filter;
         applyProductFilters();
+
     });
+
 });
 
-document.querySelectorAll(".product-carousel").forEach(carousel => {
-    const slides = Array.from(carousel.querySelectorAll(".product-carousel-slide"));
-    const status = carousel.querySelector(".carousel-status");
-    let activeSlide = slides.findIndex(slide => slide.classList.contains("is-active"));
 
-    if (slides.length < 2 || !status || activeSlide < 0) {
-        return;
-    }
-
-    carousel.querySelectorAll("[data-carousel-direction]").forEach(button => {
-        button.addEventListener("click", function () {
-            const direction = Number(this.dataset.carouselDirection);
-            activeSlide = (activeSlide + direction + slides.length) % slides.length;
-
-            slides.forEach((slide, index) => {
-                const isActive = index === activeSlide;
-                slide.classList.toggle("is-active", isActive);
-                slide.hidden = !isActive;
-                slide.setAttribute("aria-hidden", String(!isActive));
-            });
-
-            status.textContent = `${activeSlide + 1} / ${slides.length}`;
-        });
-    });
-});
-
+/* =========================================
+   CATEGORY CLICK FILTER
+========================================= */
 
 const categoryCards = document.querySelectorAll(".category-card");
 
@@ -219,15 +214,12 @@ categoryCards.forEach(card => {
 
     });
 
-    card.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            this.click();
-        }
-    });
-
 });
 
+
+/* =========================================
+   SHOPPING CART
+========================================= */
 
 let cart = JSON.parse(localStorage.getItem("yagelaCart")) || [];
 
@@ -245,42 +237,25 @@ const cartItems = document.getElementById("cartItems");
 const cartCount = document.getElementById("cartCount");
 
 const cartTotal = document.getElementById("cartTotal");
-const cartStatusMessage = document.getElementById("cartStatusMessage");
-const closeCartStatus = document.getElementById("closeCartStatus");
 
-function showCartStatus(message = "Your shopping cart is empty.") {
-    const statusText = cartStatusMessage.querySelector(".cart-status-text");
 
-    if (!cartStatusMessage || !statusText) return;
-
-    closeCartFunction();
-
-    statusText.textContent = message;
-    cartStatusMessage.classList.add("active");
-
-    clearTimeout(showCartStatus.timeoutId);
-    showCartStatus.timeoutId = setTimeout(() => {
-        cartStatusMessage.classList.remove("active");
-    }, 2500);
-}
-
-closeCartStatus.addEventListener("click", function () {
-    cartStatusMessage.classList.remove("active");
-});
+/* OPEN CART */
 
 cartButton.addEventListener("click", openCart);
 
 
 function openCart() {
 
-    cartStatusMessage.classList.remove("active");
     cartSidebar.classList.add("active");
+
     cartOverlay.classList.add("active");
     cartButton.setAttribute("aria-expanded", "true");
     cartSidebar.setAttribute("aria-hidden", "false");
 
 }
 
+
+/* CLOSE CART */
 
 closeCart.addEventListener("click", closeCartFunction);
 
@@ -297,6 +272,8 @@ function closeCartFunction() {
 
 }
 
+
+/* ADD TO CART */
 
 document.querySelectorAll(".add-cart")
     .forEach(button => {
@@ -352,6 +329,8 @@ document.querySelectorAll(".add-cart")
     });
 
 
+/* SAVE CART */
+
 function saveCart() {
 
     localStorage.setItem(
@@ -361,6 +340,8 @@ function saveCart() {
 
 }
 
+
+/* UPDATE CART */
 
 function escapeCartText(value) {
     return String(value).replace(/[&<>"']/g, character => ({
@@ -374,6 +355,8 @@ function escapeCartText(value) {
 
 function updateCart() {
 
+    const storedCart = JSON.parse(localStorage.getItem("yagelaCart") || "[]");
+    cart = Array.isArray(storedCart) ? storedCart : [];
 
     cartItems.innerHTML = "";
 
@@ -447,6 +430,8 @@ function updateCart() {
     }
 
 
+    /* CART COUNT */
+
     const totalItems = cart.reduce((total, item) => {
 
         return total + item.quantity;
@@ -456,6 +441,8 @@ function updateCart() {
 
     cartCount.textContent = totalItems;
 
+
+    /* CART TOTAL */
 
     const totalPrice = cart.reduce((total, item) => {
 
@@ -497,6 +484,8 @@ cartItems.addEventListener("click", function (event) {
 });
 
 
+/* REMOVE ITEM */
+
 function removeItem(index) {
 
     cart.splice(index, 1);
@@ -507,6 +496,10 @@ function removeItem(index) {
 
 }
 
+
+/* =========================================
+   PAYMENT CHECKOUT
+========================================= */
 
 const checkoutBtn = document.getElementById("checkoutBtn");
 const paymentModal = document.getElementById("paymentModal");
@@ -550,7 +543,7 @@ function updatePaymentInstructions(method) {
 
 checkoutBtn.addEventListener("click", function () {
     if (cart.length === 0) {
-        showCartStatus();
+        alert("Your shopping cart is empty.");
         return;
     }
 
@@ -617,6 +610,10 @@ paymentForm.addEventListener("submit", async function (event) {
     closePaymentModal();
 });
 
+
+/* =========================================
+   COMMENT FORM
+========================================= */
 
 const commentForm = document.getElementById("commentForm");
 
@@ -696,13 +693,16 @@ if (commentForm) {
 
 }
 
+/* =========================================
+   FAQ ACCORDION
+========================================= */
+
 const faqItems = document.querySelectorAll(".faq-item");
 
 
 faqItems.forEach(item => {
 
     const question = item.querySelector(".faq-question");
-    question.setAttribute("aria-expanded", "false");
 
 
     question.addEventListener("click", function () {
@@ -727,19 +727,10 @@ faqItems.forEach(item => {
 
 });
 
-document.addEventListener("keydown", function (event) {
-    if (event.key !== "Escape") return;
 
-    searchOverlay.classList.remove("active");
-    searchOverlay.setAttribute("aria-hidden", "true");
-    searchToggle.setAttribute("aria-expanded", "false");
-    closeCartFunction();
-    closePaymentModal();
-    navLinks.classList.remove("active");
-    menuBtn.setAttribute("aria-expanded", "false");
-    menuBtn.setAttribute("aria-label", "Open navigation menu");
-});
-
+/* =========================================
+   SCROLL TO TOP
+========================================= */
 
 const scrollTop = document.getElementById("scrollTop");
 
@@ -773,6 +764,10 @@ scrollTop.addEventListener("click", function () {
 });
 
 
+/* =========================================
+   CUSTOMER ACCOUNT BUTTON
+========================================= */
+
 const accountBtn = document.querySelector(".account-btn");
 
 
@@ -792,6 +787,21 @@ accountBtn.addEventListener("click", function () {
     );
 
 });
+
+window.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape") return;
+
+    searchOverlay.classList.remove("active");
+    searchOverlay.setAttribute("aria-hidden", "true");
+    searchToggle.setAttribute("aria-expanded", "false");
+    navLinks.classList.remove("active");
+    menuBtn.setAttribute("aria-expanded", "false");
+    menuBtn.setAttribute("aria-label", "Open navigation menu");
+    closeCartFunction();
+    closePaymentModal();
+});
+
+// NEWSLETTER FORM
 
 const newsletterForm = document.getElementById("newsletterForm");
 const newsletterMessage = document.getElementById("newsletterMessage");
@@ -813,10 +823,13 @@ newsletterForm.addEventListener("submit", function (event) {
 
     })
 
-    .then(function () {
+    .then(function (response) {
+        if (!response.ok) {
+            throw new Error("Newsletter subscription failed.");
+        }
 
-        newsletterMessage.innerHTML =
-            " Subscribed, Thank you!";
+        newsletterMessage.textContent =
+            "Subscribed, thank you!";
 
         newsletterMessage.style.color = "white";
 
@@ -826,8 +839,8 @@ newsletterForm.addEventListener("submit", function (event) {
 
     .catch(function (error) {
 
-        newsletterMessage.innerHTML =
-            "❌ Something went wrong. Please try again.";
+        newsletterMessage.textContent =
+            "Something went wrong. Please try again.";
 
         newsletterMessage.style.color = "red";
 
@@ -836,5 +849,9 @@ newsletterForm.addEventListener("submit", function (event) {
     });
 
 });
+
+/* =========================================
+   INITIALIZE CART
+========================================= */
 
 updateCart();
