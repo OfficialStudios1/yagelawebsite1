@@ -1,0 +1,16 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+  # The Supabase project URL is public (it ships in supabase-config.js for the browser).
+  # SUPABASE_SERVICE_ROLE_KEY stays covered by secrets scanning.
+  environment = { SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL" }
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin/"
+  status = 301
